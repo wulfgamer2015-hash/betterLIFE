@@ -839,9 +839,11 @@ const TASK_NARRATION_LINES = {
 };
 
 function narrateNewTarget(difficulty, target) {
-  const lines = TASK_NARRATION_LINES[difficulty] || TASK_NARRATION_LINES.normal;
-  const line = lines[Math.floor(Math.random() * lines.length)];
-  speakAsNarrator?.(`${line} Find a ${target}.`);
+  // Task-mode narration disabled per user request — Bin no longer speaks a
+  // line every time a new target shows up. The narrator voice itself
+  // (speakAsNarrator) is untouched and still used everywhere else, e.g.
+  // for Bin's regular chat replies.
+  return;
 }
 
 tasksSaveBtn?.addEventListener('click', () => {
