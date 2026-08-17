@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Camera UI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <video id="preview" playsinline autoplay muted></video>
+
+    <div id="topBar" role="toolbar" aria-label="top bar">
+      <div class="topLogo">better <span class="life">LIFE</span></div>
+      <div id="scoreCounter" class="scoreCounter" title="Your score (based on tokens used)">⭐ 0</div>
+      <div class="topBarSpacer"></div>
+      <button id="pauseBtn" title="Pause camera" aria-label="Pause camera">⏸️</button>
+      <button id="galleryBtn" title="View photos" aria-label="View photos">
+        🖼️<span id="galleryCount" class="galleryCount" hidden>0</span>
+      </button>
+    </div>
+
+    <div id="pausePopover" aria-hidden="true">
+      <div class="pauseInner">
+        <div class="pauseTitle">Paused</div>
+        <button id="resumeBtn" class="pauseBtnPrimary">▶ Back to game</button>
+        <button id="backToMenuBtn" class="pauseBtnSecondary">Back to main menu</button>
+      </div>
+    </div>
+
+    <!-- Check button: only shown above the capture button while a task is active -->
+    <button id="tasksCheckBtn" aria-hidden="true">✔️ Check</button>
+
+    <div id="controls" role="toolbar" aria-label="camera controls">
+
+      <button id="torchBtn" title="Toggle torch" aria-label="Toggle torch">🔦</button>
+      <button id="modesToggleBtn" title="Modes & zoom" aria-label="Modes and zoom" aria-pressed="false">◧</button>
+      <button id="captureBtn" title="Capture photo" aria-label="Capture photo">●</button>
+
+      <!-- AI button added -->
+      <button id="aiBtn" title="Talk to Bin" aria-label="Talk to Bin">🗑️</button>
+
+      <button id="tasksBtn" title="Tasks" aria-label="Tasks">🎯</button>
+
+    </div>
+
+    <!-- Modes bar: replaces the old zoom icon. Real camera zoom lives here,
+         plus a Photo / Bin Vision / Video / Trophy mode switcher. Hidden until
+         the modes icon in the controls bar is tapped. -->
+    <div id="modesBar" role="toolbar" aria-label="capture modes and zoom" aria-hidden="true">
+      <div id="zoomRow" aria-hidden="true">
+        <input id="zoomSlider" type="range" min="1" max="4" step="0.1" value="1" aria-label="Zoom" />
+        <span id="zoomLabel">1.0×</span>
+      </div>
+      <div id="modesRow">
+        <button class="modeBtn" data-mode="binvision" aria-pressed="false">BIN VISION</button>
+        <button class="modeBtn" data-mode="trophy" aria-pressed="false">TROPHY</button>
+        <button class="modeBtn active" data-mode="photo" aria-pressed="true">PHOTO</button>
+        <button class="modeBtn" data-mode="video" aria-pressed="false">VIDEO</button>
+      </div>
+    </div>
+
+    <!-- AI chat bar (hidden until AI is enabled) -->
+    <div id="aiBar" aria-hidden="true">
+      <div id="aiMessages" role="log" aria-live="polite"></div>
+      <div id="aiImageRow">
+        <button id="aiImageToggle" aria-pressed="false" title="Always let Bin see your camera + last photo">🖼️ Image</button>
+      </div>
+      <div id="aiControls">
+        <button id="aiMic" title="Record" aria-label="Record">🎤</button>
+        <input id="aiInput" type="text" placeholder="Say something to Bin..." />
+        <button id="aiSend" title="Send" aria-label="Send">Send</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Gallery modal: shows all captured photos with a smart download button -->
+  <div id="galleryModal" aria-hidden="true" role="dialog" aria-label="Photo gallery">
+    <div class="galleryInner">
+      <div class="galleryHeader">
+        <strong>Your Photos</strong>
+        <div class="galleryHeaderBtns">
+          <button id="galleryDownload" class="smallBtn">⬇︎ Download</button>
+          <button id="closeGallery" title="Close">✕</button>
+        </div>
+      </div>
+      <div id="galleryGrid" class="galleryGrid"></div>
+      <div id="galleryEmpty" class="galleryEmpty" hidden>No photos taken yet.</div>
+    </div>
+  </div>
+
+  <!-- Main menu overlay -->
+  <div id="mainMenu" role="dialog" aria-label="Main menu">
+    <div class="menuGlow"></div>
+    <div class="menuInner">
+      <div class="logo">better <span class="life">LIFE</span></div>
+
+      <button id="playBtn" class="menuPlayBtn" aria-label="Play">
+        <span class="menuPlayIcon">▶</span> Play
+      </button>
+
+      <div class="menuBtns">
+        <button id="settingsBtn" class="menuBtn" aria-label="Settings">⚙️ Settings</button>
+        <button id="fullscreenBtn" class="menuBtn" aria-label="Toggle fullscreen">⛶ Fullscreen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings sheet -->
+  <div id="settingsSheet" role="dialog" aria-label="Settings" aria-hidden="true">
+    <div class="sheetInner">
+      <div class="sheetHeader">
+        <strong>Settings</strong>
+        <button id="closeSettings" title="Close">✕</button>
+      </div>
+      <div class="sheetBody">
+
+        <!-- BIN -->
+        <div class="settingsSection">
+          <div class="settingsSectionTitle">Bin</div>
+
+          <label style="display:block;">
+            Bin's Personality
+            <select id="settingsPersonality" class="settingsField">
+              <option value="normalai">Normal AI (default, plain generic assistant)</option>
+              <option value="trash">Trash (sarcastic trash can)</option>
+              <option value="normal">Photo Helper (plain helpful assistant, camera-focused)</option>
+              <option value="fitness">Fitness (pushes you to move & exercise)</option>
+            </select>
+          </label>
+
+          <div style="height:16px"></div>
+          <label style="display:block;">
+            Narrator voice
+            <select id="settingsNarratorVoice" class="settingsField">
+              <option value="system">System voice (your device's default)</option>
+              <option value="deep">Deep narrator (default)</option>
+              <option value="bright">Bright narrator</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- PRIVACY -->
+        <div class="settingsSection">
+          <div class="settingsSectionTitle">Privacy</div>
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <span>Let Bin use your location<br><small style="opacity:0.6;">Only used to suggest good photo spots nearby</small></span>
+            <input id="settingsLocationToggle" type="checkbox" style="width:20px;height:20px;flex-shrink:0;" />
+          </label>
+        </div>
+
+        <!-- EXPERIMENTAL -->
+        <div class="settingsSection">
+          <div class="settingsSectionTitle">Experimental</div>
+          <button id="experimentalBtn" class="smallBtn" style="width:100%;">🧪 Experimental features</button>
+        </div>
+
+        <div class="settingsSection groqOnlySetting">
+          <div class="settingsSectionTitle">Groq</div>
+          <label style="display:block;">
+            API key
+            <div style="display:flex;gap:8px;margin-top:6px;">
+              <input id="settingsKeyInput-groq" type="password" placeholder="gsk_..." class="settingsField" style="flex:1;min-height:40px;box-sizing:border-box;padding:8px 10px;" />
+              <button id="settingsKeySave-groq" class="smallBtn">Save</button>
+            </div>
+            <div id="settingsKeyStatus-groq" style="font-size:12px;opacity:0.7;margin-top:6px;"></div>
+          </label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Experimental sheet — separate from Settings so nothing overlaps -->
+  <div id="experimentalSheet" role="dialog" aria-label="Experimental" aria-hidden="true">
+    <div class="sheetInner">
+      <div class="sheetHeader">
+        <strong>Experimental</strong>
+        <button id="closeExperimental" title="Close">✕</button>
+      </div>
+      <div class="sheetBody">
+
+        <div class="settingsSection" style="border-top:0;padding-top:4px;margin-top:0;">
+          <div class="settingsSectionTitle">AI Provider</div>
+          <label style="display:block;">
+            Where Bin's brain runs
+            <select id="settingsProvider" class="settingsField">
+              <option value="groq">Cloud (Groq) — faster, sees images, needs an API key + credits</option>
+              <option value="local">Local (this device) — free, private, offline, text only</option>
+            </select>
+          </label>
+          <div style="font-size:12px;line-height:1.5;margin-top:10px;padding:10px;border-radius:8px;background:rgba(255,92,92,0.12);border:1px solid rgba(255,92,92,0.3);color:#ffb3b3;">
+            ⚠️ Experimental. Local AI runs a real language model in your browser, which competes with the camera for your phone's GPU — it can make the camera preview laggy, and on some phones/browsers without solid WebGPU support it may fail to load at all. If that happens, just switch back to Cloud (Groq) here.
+          </div>
+          <div class="localOnlySetting" hidden style="font-size:12px;opacity:0.75;margin-top:10px;line-height:1.5;">
+            Runs fully on your phone/computer — no API key, no per-message cost, no data ever leaves the device. First use downloads a small model (~0.7GB, cached afterward). Needs a WebGPU-capable browser (recent Chrome, Edge, or Safari). It's slower and less capable than the cloud model, and can't see photos/camera — text chat only.
+            <div id="localAiStatus" style="margin-top:8px;font-weight:600;color:var(--accent);"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- AR overlay (added) -->
+  <div id="arOverlay" aria-hidden="true">
+    <model-viewer id="mv"
+      src="trash_can.glb"
+      alt="3D Trash Can"
+      camera-controls
+      disable-pan
+      shadow-intensity="0"
+      exposure="1"
+      style="width:100%;height:100%;display:block;background:transparent">
+    </model-viewer>
+  </div>
+
+  <!-- Persistent target label shown at the top while a task is active, even after the panel closes -->
+  <div id="tasksTargetBadge" aria-hidden="true">
+    <span id="tasksTargetBadgeText">Find a tree</span>
+    <span id="tasksTargetBadgeProgress"></span>
+  </div>
+
+  <!-- Tasks: find-the-object scavenger hunt game -->
+  <div id="tasksBar" aria-hidden="true">
+
+    <!-- Step 1: pick one of today's 5 events -->
+    <div id="tasksEventListRow">
+      <div class="eventsLoading">Loading events…</div>
+    </div>
+
+    <!-- Step 2: pick a difficulty within the chosen event -->
+    <div id="tasksDifficultyRow" hidden>
+      <div id="tasksDifficultyHeader">
+        <button id="tasksDifficultyBackBtn" aria-label="Back to events">←</button>
+        <span id="tasksDifficultyEventName"></span>
+      </div>
+      <div id="tasksDifficultyGrid">
+        <button class="difficultyBtn" data-difficulty="1">I</button>
+        <button class="difficultyBtn" data-difficulty="2">II</button>
+        <button class="difficultyBtn" data-difficulty="3">III</button>
+        <button class="difficultyBtn" data-difficulty="goodluck" id="goodLuckDifficultyBtn" hidden>Impossible</button>
+      </div>
+    </div>
+
+    <div id="tasksActiveRow" hidden>
+      <div id="tasksProgressText"></div>
+      <button id="tasksSaveBtn">Save progress</button>
+      <button id="tasksQuitBtn">Quit task</button>
+    </div>
+  </div>
+
+  <!-- Shown when Tasks is opened without a Groq API key set (task checking needs Cloud/Groq vision) -->
+  <div id="noKeyModal" aria-hidden="true" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+    <div style="background:#151515;color:#ddd;padding:20px;border-radius:14px;width:88%;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+      <div style="font-weight:700;margin-bottom:10px;">Don't have an API key?</div>
+      <div style="font-size:14px;line-height:1.5;color:#bbb;margin-bottom:16px;">
+        Set one up in the Settings. To get a free Groq API key, go to
+        <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:#3cd4a0;">console.groq.com/keys</a>
+        and sign in. After that, just create it.
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button id="noKeyModalSettingsBtn" style="flex:1;padding:10px 0;border-radius:8px;border:0;background:linear-gradient(180deg,#3cd4a0,#2fc18a);color:#02211a;font-weight:700;">Open Settings</button>
+        <button id="noKeyModalCloseBtn" style="flex:1;padding:10px 0;border-radius:8px;border:0;background:rgba(255,255,255,0.08);color:#ddd;font-weight:600;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom API key modal (replaces window.prompt, which many embedded/preview environments block) -->
+  <div id="keyModal" aria-hidden="true" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+    <div style="background:#151515;color:#ddd;padding:20px;border-radius:14px;width:88%;max-width:360px;box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+      <div id="keyModalTitle" style="font-weight:700;margin-bottom:10px;">Enter your Groq API key</div>
+      <input id="keyModalInput" type="password" placeholder="gsk_..." style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:0;background:rgba(255,255,255,0.08);color:#fff;margin-bottom:12px;" />
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button id="keyModalCancel" style="padding:8px 14px;border-radius:8px;border:0;background:rgba(255,255,255,0.1);color:#ddd;">Cancel</button>
+        <button id="keyModalSave" style="padding:8px 14px;border-radius:8px;border:0;background:#3cd4a0;color:#02211a;font-weight:600;">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- model-viewer (esm) -->
+  <script type="module" src="https://esm.sh/@google/model-viewer@1.14.0"></script>
+
+  <!-- JSZip: used to bundle multiple photos into a downloadable folder/zip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
